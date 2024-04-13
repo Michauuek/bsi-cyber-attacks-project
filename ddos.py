@@ -10,13 +10,15 @@ dataset = pd.read_csv('netflow_day-14.csv', header=None, names=column_names)
 
 # Convert 'Time' from epoch to datetime
 # and round it to the nearest minute
+dataset['EpochTime'] = dataset['Time']
 dataset['Time'] = (dataset['Time'] // 60) * 60
 dataset['Time'] = pd.to_datetime(dataset['Time'], unit='s')
 
 aggregated_data = dataset.groupby(['SrcDevice', 'Time']).agg({
     'SrcPackets': 'sum',
     'SrcBytes': 'sum',
-    'DstDevice': pd.Series.nunique  # Count unique destination devices
+    'DstDevice': pd.Series.nunique,  # Count unique destination devices,
+    'EpochTime': 'first'
 }).reset_index()
 
 print(aggregated_data.head())
@@ -30,5 +32,5 @@ aggregated_data['anomaly'] = model.fit_predict(aggregated_data[['SrcPackets', 'S
 potential_attacks = aggregated_data[aggregated_data['anomaly'] == -1]
 potential_attacks.to_excel('potential_attacks_ddos.xlsx', index=False)
 
-sorted_data = aggregated_data.sort_values(by=['DstDevice', 'SrcPackets', 'SrcBytes'], ascending=[False, False, False])
+sorted_data = aggregated_data.sort_values(by=['SrcPackets', 'SrcBytes', 'DstDevice'], ascending=[False, False, False])
 sorted_data.to_excel('ddos_to_analyse.xlsx', index=False)
